@@ -14,8 +14,8 @@ model_name = os.getenv("MODEL_NAME", "Qwen/Qwen3-0.6B")
 cache_dir = os.getenv("HF_HOME", os.getenv("TRANSFORMERS_CACHE", "/app/cache"))
 
 print("=" * 60)
-print(f"Downloading model: {model_name}")
-print(f"Cache directory: {cache_dir}")
+print(f"🚀 DOWNLOADING MODEL: {model_name}")
+print(f"📁 Cache directory: {cache_dir}")
 print("=" * 60)
 
 try:
@@ -49,7 +49,8 @@ try:
     torch.cuda.empty_cache()
     
     print("=" * 60)
-    print("Model successfully prebaked into container!")
+    print(f"✅ MODEL SUCCESSFULLY PREBAKED: {model_name}")
+    print(f"📊 Model size: {param_count / 1e9:.2f}B parameters")
     print("=" * 60)
     
 except Exception as e:

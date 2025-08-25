@@ -8,8 +8,9 @@ ENV PYTHONUNBUFFERED=1
 ARG MODE_TO_RUN=pod
 ENV MODE_TO_RUN=$MODE_TO_RUN
 
-# QWEN Model configuration
-ENV MODEL_NAME="Qwen/Qwen3-14B"
+# QWEN Model configuration - can be overridden at build time
+ARG MODEL_NAME="Qwen/Qwen3-0.6B"
+ENV MODEL_NAME=$MODEL_NAME
 ENV USE_QUANTIZATION="true"
 ENV DEVICE_MAP="auto"
 ENV TRANSFORMERS_CACHE="/app/cache"
@@ -59,6 +60,26 @@ COPY download_model.py $WORKSPACE_DIR/download_model.py
 
 # Pre-download the model during build (prebaking)
 RUN python download_model.py
+
+# Verify the correct model was downloaded
+RUN echo "=== MODEL VERIFICATION ===" && \
+    echo "Expected model: $MODEL_NAME" && \
+    echo "HF_HOME: $HF_HOME" && \
+    echo "Cache directory contents:" && \
+    ls -la $HF_HOME/ && \
+    EXPECTED_DIR="models--$(echo $MODEL_NAME | sed 's|/|--|g')" && \
+    echo "Expected directory: $EXPECTED_DIR" && \
+    echo "Full expected path: $HF_HOME/$EXPECTED_DIR" && \
+    if [ -d "$HF_HOME/$EXPECTED_DIR" ]; then \
+        echo "✅ Correct model found!"; \
+    else \
+        echo "❌ Expected model directory not found!"; \
+        echo "DEBUG: Trying to find any models..."; \
+        find $HF_HOME -name "*models*" -type d || echo "No model directories found"; \
+        echo "❌ Build failed - model verification failed"; \
+        exit 1; \
+    fi && \
+    echo "==========================="
 
 # Make sure start.sh is executable
 RUN chmod +x start.sh

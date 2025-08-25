@@ -10,6 +10,7 @@ depot bake all --push
 depot build --platform linux/amd64 -t justinrunpod/qwen:0.6b --build-arg MODEL_NAME=Qwen/Qwen3-0.6B . --push
 depot build --platform linux/amd64 -t justinrunpod/qwen:4b --build-arg MODEL_NAME=Qwen/Qwen3-4B . --push  
 depot build --platform linux/amd64 -t justinrunpod/qwen:8b --build-arg MODEL_NAME=Qwen/Qwen3-8B . --push
+depot build --platform linux/amd64 -t justinrunpod/qwen:14b --build-arg MODEL_NAME=Qwen/Qwen3-14B . --push
     
 ## Files
 
@@ -25,6 +26,7 @@ depot build --platform linux/amd64 -t justinrunpod/qwen:8b --build-arg MODEL_NAM
 - `Qwen/Qwen3-0.6B` - Smallest, ~1.2GB
 - `Qwen/Qwen3-4B` - Balanced, ~8GB
 - `Qwen/Qwen3-8B` - Large, ~16GB
+- `Qwen/Qwen3-14B` - Extra Large, ~28GB
 - `Qwen/Qwen3-Coder-30B-A3B-Instruct` - For code generation
 
 ### Qwen2.5 (Stable)
