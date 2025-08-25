@@ -118,9 +118,67 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import time
 import logging
+from pydantic import BaseModel, Field, validator
+from typing import Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class GenerationRequest(BaseModel):
+    """Pydantic model for request validation with reasonable defaults"""
+    prompt: str = Field(..., description="The input text prompt for generation", min_length=1)
+    system_prompt: Optional[str] = Field(
+        default=None, 
+        description="System message to define model behavior. Uses environment default if not provided."
+    )
+    max_new_tokens: int = Field(
+        default=1024, 
+        description="Maximum number of new tokens to generate (1-4096)", 
+        ge=1, 
+        le=4096
+    )
+    temperature: float = Field(
+        default=0.2, 
+        description="Controls randomness: 0.1-0.3 (focused/code), 0.4-0.7 (balanced), 0.8-1.2 (creative), 1.3+ (experimental)", 
+        ge=0.1, 
+        le=2.0
+    )
+    top_p: float = Field(
+        default=0.9, 
+        description="Nucleus sampling: considers tokens with cumulative probability ≤ top_p. 0.8-0.95 recommended", 
+        ge=0.1, 
+        le=1.0
+    )
+    top_k: int = Field(
+        default=50, 
+        description="Top-k sampling: considers only the k most likely tokens. 20-50 recommended, works with top_p", 
+        ge=1, 
+        le=100
+    )
+    do_sample: bool = Field(
+        default=True, 
+        description="Sampling strategy: false=greedy (deterministic), true=probabilistic (uses temp/top_p/top_k)"
+    )
+    repetition_penalty: float = Field(
+        default=1.1, 
+        description="Reduces repetition: 1.0 (no penalty), 1.05-1.15 (subtle), 1.2+ (strong, may sound unnatural)", 
+        ge=1.0, 
+        le=2.0
+    )
+
+    @validator('max_new_tokens')
+    def validate_max_tokens(cls, v):
+        return min(v, 4096)  # Hard cap at 4096
+    
+    @validator('temperature', 'top_p', 'repetition_penalty')
+    def validate_float_ranges(cls, v, field):
+        if field.name == 'temperature':
+            return max(0.1, min(v, 2.0))
+        elif field.name == 'top_p':
+            return max(0.1, min(v, 1.0))
+        elif field.name == 'repetition_penalty':
+            return max(1.0, min(v, 2.0))
+        return v
 
 # Environment variables with support for Qwen1.5, Qwen2, Qwen2.5, and Qwen3
 mode_to_run = os.getenv("MODE_TO_RUN", "pod")
@@ -284,42 +342,31 @@ def generate_text(prompt, max_new_tokens=512, temperature=0.7, top_p=0.9,
         return {"error": str(e)}
 
 async def handler(event):
-    """RunPod handler function"""
+    """RunPod handler function with Pydantic validation"""
     
     inputReq = event.get("input", {})
     
-    # Extract prompt
-    prompt = inputReq.get("prompt", "")
-    if not prompt:
-        return {"error": "No prompt provided"}
-    
-    # Extract generation parameters with defaults
-    max_new_tokens = inputReq.get("max_new_tokens", 512)
-    temperature = inputReq.get("temperature", 0.7)
-    top_p = inputReq.get("top_p", 0.9)
-    top_k = inputReq.get("top_k", 50)
-    do_sample = inputReq.get("do_sample", True)
-    repetition_penalty = inputReq.get("repetition_penalty", 1.1)
-    system_prompt = inputReq.get("system_prompt", None)  # Custom system prompt
-    
-    # Validate and clamp parameters
-    max_new_tokens = min(max_new_tokens, 2048)
-    temperature = max(0.1, min(temperature, 2.0))
-    top_p = max(0.1, min(top_p, 1.0))
-    
-    # Generate text
-    result = generate_text(
-        prompt=prompt,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        do_sample=do_sample,
-        repetition_penalty=repetition_penalty,
-        system_prompt=system_prompt
-    )
-    
-    return result
+    try:
+        # Validate and parse input using Pydantic
+        request = GenerationRequest(**inputReq)
+        
+        # Generate text with validated parameters
+        result = generate_text(
+            prompt=request.prompt,
+            max_new_tokens=request.max_new_tokens,
+            temperature=request.temperature,
+            top_p=request.top_p,
+            top_k=request.top_k,
+            do_sample=request.do_sample,
+            repetition_penalty=request.repetition_penalty,
+            system_prompt=request.system_prompt
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Validation error: {e}")
+        return {"error": f"Invalid request parameters: {str(e)}"}
 
 # Load model on startup
 if __name__ == "__main__":

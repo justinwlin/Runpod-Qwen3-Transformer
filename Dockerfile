@@ -1,5 +1,5 @@
-# Use an official RunPod base image
-FROM runpod/pytorch:0.7.0-cu1241-torch240-ubuntu2004
+# Use an official RunPod base image with newer Python
+FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1 
@@ -21,20 +21,15 @@ ENV WORKSPACE_DIR=${WORKSPACE_DIR}
 WORKDIR $WORKSPACE_DIR
 
 # Install dependencies in a single RUN command to reduce layers
-# Clean up in the same layer to reduce image size
 RUN apt-get update --yes --quiet && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
-    software-properties-common \
-    gpg-agent \
     build-essential \
-    apt-utils \
     ca-certificates \
-    curl && \
-    add-apt-repository --yes ppa:deadsnakes/ppa && \
-    apt-get update --yes --quiet && \
-    DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
+    curl \
     python3-venv \
-    python3-pip
+    python3-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create and activate a Python virtual environment
 RUN python3 -m venv /app/venv

@@ -11,7 +11,7 @@ import torch
 
 # Get model name from environment
 model_name = os.getenv("MODEL_NAME", "Qwen/Qwen3-0.6B")
-cache_dir = os.getenv("TRANSFORMERS_CACHE", "/app/cache")
+cache_dir = os.getenv("HF_HOME", os.getenv("TRANSFORMERS_CACHE", "/app/cache"))
 
 print("=" * 60)
 print(f"Downloading model: {model_name}")
