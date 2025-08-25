@@ -118,7 +118,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import time
 import logging
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 logging.basicConfig(level=logging.INFO)
@@ -133,27 +133,19 @@ class GenerationRequest(BaseModel):
     )
     max_new_tokens: int = Field(
         default=1024, 
-        description="Maximum number of new tokens to generate (1-4096)", 
-        ge=1, 
-        le=4096
+        description="Maximum number of new tokens to generate (1-4096). Values auto-clamped to 1-4096 range."
     )
     temperature: float = Field(
         default=0.2, 
-        description="Controls randomness: 0.1-0.3 (focused/code), 0.4-0.7 (balanced), 0.8-1.2 (creative), 1.3+ (experimental)", 
-        ge=0.1, 
-        le=2.0
+        description="Controls randomness: 0.1-0.3 (focused/code), 0.4-0.7 (balanced), 0.8-1.2 (creative), 1.3+ (experimental). Auto-clamped to 0.1-2.0."
     )
     top_p: float = Field(
         default=0.9, 
-        description="Nucleus sampling: considers tokens with cumulative probability ≤ top_p. 0.8-0.95 recommended", 
-        ge=0.1, 
-        le=1.0
+        description="Nucleus sampling: considers tokens with cumulative probability ≤ top_p. 0.8-0.95 recommended. Auto-clamped to 0.1-1.0."
     )
     top_k: int = Field(
         default=50, 
-        description="Top-k sampling: considers only the k most likely tokens. 20-50 recommended, works with top_p", 
-        ge=1, 
-        le=100
+        description="Top-k sampling: considers only the k most likely tokens. 20-50 recommended, works with top_p. Auto-clamped to 1-100."
     )
     do_sample: bool = Field(
         default=True, 
@@ -161,24 +153,33 @@ class GenerationRequest(BaseModel):
     )
     repetition_penalty: float = Field(
         default=1.1, 
-        description="Reduces repetition: 1.0 (no penalty), 1.05-1.15 (subtle), 1.2+ (strong, may sound unnatural)", 
-        ge=1.0, 
-        le=2.0
+        description="Reduces repetition: 1.0 (no penalty), 1.05-1.15 (subtle), 1.2+ (strong, may sound unnatural). Auto-clamped to 1.0-2.0."
     )
 
-    @validator('max_new_tokens')
+    @field_validator('max_new_tokens')
+    @classmethod
     def validate_max_tokens(cls, v):
-        return min(v, 4096)  # Hard cap at 4096
+        return max(1, min(v, 4096))  # Clamp to 1-4096
     
-    @validator('temperature', 'top_p', 'repetition_penalty')
-    def validate_float_ranges(cls, v, field):
-        if field.name == 'temperature':
-            return max(0.1, min(v, 2.0))
-        elif field.name == 'top_p':
-            return max(0.1, min(v, 1.0))
-        elif field.name == 'repetition_penalty':
-            return max(1.0, min(v, 2.0))
-        return v
+    @field_validator('temperature')
+    @classmethod  
+    def validate_temperature(cls, v):
+        return max(0.1, min(v, 2.0))
+    
+    @field_validator('top_p')
+    @classmethod
+    def validate_top_p(cls, v):
+        return max(0.1, min(v, 1.0))
+        
+    @field_validator('repetition_penalty')
+    @classmethod
+    def validate_repetition_penalty(cls, v):
+        return max(1.0, min(v, 2.0))
+        
+    @field_validator('top_k')
+    @classmethod
+    def validate_top_k(cls, v):
+        return max(1, min(v, 100))
 
 # Environment variables with support for Qwen1.5, Qwen2, Qwen2.5, and Qwen3
 mode_to_run = os.getenv("MODE_TO_RUN", "pod")
