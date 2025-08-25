@@ -204,6 +204,7 @@ Reduces repetitive text:
 - `MODE_TO_RUN` - "pod" or "serverless" (default: pod)
 - `USE_QUANTIZATION` - "true" to reduce memory usage
 - `SYSTEM_PROMPT` - Default system prompt
+- `MAX_CONCURRENCY` - Maximum concurrent requests in serverless mode (default: 1)
 
 ## Building for Different Models
 

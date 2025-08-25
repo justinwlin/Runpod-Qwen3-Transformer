@@ -186,12 +186,15 @@ mode_to_run = os.getenv("MODE_TO_RUN", "pod")
 model_name = os.getenv("MODEL_NAME", "Qwen/Qwen3-0.6B")
 use_quantization = os.getenv("USE_QUANTIZATION", "false").lower() == "true"
 device_map = os.getenv("DEVICE_MAP", "auto")
+# Concurrency limit for serverless mode (how many requests can run simultaneously)
+max_concurrency = int(os.getenv("MAX_CONCURRENCY", "1"))
 
 logger.info("------- ENVIRONMENT VARIABLES -------")
 logger.info(f"Mode running: {mode_to_run}")
 logger.info(f"Model name: {model_name}")
 logger.info(f"Use quantization: {use_quantization}")
 logger.info(f"Device map: {device_map}")
+logger.info(f"Max concurrency: {max_concurrency}")
 logger.info("------- -------------------- -------")
 
 # Global model and tokenizer
@@ -415,5 +418,5 @@ if __name__ == "__main__":
         
         runpod.serverless.start({
             "handler": handler,
-            "concurrency_modifier": lambda current: 1,
+            "concurrency_modifier": lambda _: max_concurrency,
         })
