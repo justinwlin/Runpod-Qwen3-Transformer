@@ -142,8 +142,13 @@ def load_model():
         # Add Flash Attention 2 if available
         if use_flash_attention and torch.cuda.is_available():
             try:
-                model_kwargs["attn_implementation"] = "flash_attention_2"
-                logger.info("Using Flash Attention 2 for faster inference")
+                # First check if flash_attn is actually installed
+                import importlib.util
+                if importlib.util.find_spec("flash_attn") is not None:
+                    model_kwargs["attn_implementation"] = "flash_attention_2"
+                    logger.info("Using Flash Attention 2 for faster inference")
+                else:
+                    logger.warning("Flash Attention 2 requested but flash_attn package not installed, using default attention")
             except Exception as e:
                 logger.warning(f"Flash Attention 2 not available: {e}")
         
