@@ -11,3 +11,5 @@ safetensors
 bitsandbytes
 hf_transfer
 pydantic>=2.0.0
+flash-attn>=2.0.0
+huggingface-hub>=0.19.0
