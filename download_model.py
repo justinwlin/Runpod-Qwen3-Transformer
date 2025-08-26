@@ -28,29 +28,25 @@ try:
     )
     print("✓ Tokenizer downloaded")
     
-    # Download model
+    # Download model weights without loading into memory
     print("Downloading model weights...")
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
+    from huggingface_hub import snapshot_download
+    
+    # Just download the files without loading the model
+    snapshot_download(
+        repo_id=model_name,
         cache_dir=cache_dir,
-        torch_dtype=torch.float16,
-        trust_remote_code=True,
-        low_cpu_mem_usage=True
+        ignore_patterns=["*.h5", "*.ot", "*.msgpack"]  # Skip unnecessary formats
     )
-    print("✓ Model downloaded")
+    print("✓ Model files downloaded")
     
-    # Get model size
-    param_count = sum(p.numel() for p in model.parameters())
-    print(f"Model size: {param_count / 1e9:.2f}B parameters")
-    
-    # Clean up to save memory
-    del model
+    # Clean up
     del tokenizer
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     
     print("=" * 60)
     print(f"✅ MODEL SUCCESSFULLY PREBAKED: {model_name}")
-    print(f"📊 Model size: {param_count / 1e9:.2f}B parameters")
     print("=" * 60)
     
 except Exception as e:

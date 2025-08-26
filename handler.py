@@ -161,7 +161,8 @@ def load_model():
         # Enable better memory allocation
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            torch.cuda.set_per_process_memory_fraction(0.9)
+            # Commented out - can cause OOM during build
+            # torch.cuda.set_per_process_memory_fraction(0.9)
         
         # Set model to evaluation mode
         model.eval()
