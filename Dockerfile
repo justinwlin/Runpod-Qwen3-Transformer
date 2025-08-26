@@ -42,31 +42,10 @@ RUN pip install --no-cache-dir \
     requests \
     runpod
 
-# Upgrade pip and install build tools
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-
-# Check if nvcc is available (needed for flash-attn compilation)
-RUN echo "=== Checking for nvcc (CUDA compiler) ===" && \
-    if ! which nvcc; then \
-        echo "ERROR: nvcc not found - required for flash-attn compilation"; \
-        echo "Please use a 'devel' image that includes CUDA toolkit"; \
-        exit 1; \
-    fi && \
-    nvcc --version
-
-# Install ninja for faster compilation
-RUN pip install --no-cache-dir ninja && \
-    ninja --version
-
-# Install requirements.txt (excluding flash-attn first)
+# Install requirements.txt
 COPY requirements.txt ./requirements.txt
-RUN grep -v "flash-attn" requirements.txt > requirements_no_flash.txt && \
-    pip install --no-cache-dir -r requirements_no_flash.txt
-
-# Install flash-attn separately with proper flags
-# Using MAX_JOBS to limit memory usage during compilation
-RUN MAX_JOBS=4 pip install --no-cache-dir flash-attn --no-build-isolation || \
-    echo "Warning: flash-attn installation failed, continuing without it"
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
     
 # Remove Runpod's copy of start.sh and replace it with our own
 RUN rm ../start.sh

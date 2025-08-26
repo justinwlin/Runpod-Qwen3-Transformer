@@ -2,7 +2,7 @@
 OPTIMIZED QWEN Model Handler for RunPod with Performance Enhancements
 
 Key optimizations:
-1. Flash Attention 2 for faster attention computation
+1. Optimized for serverless deployment
 2. torch.compile() for optimized execution
 3. Batch processing support
 4. KV cache optimization
@@ -92,7 +92,6 @@ model_name = os.getenv("MODEL_NAME", "Qwen/Qwen3-0.6B")
 use_quantization = os.getenv("USE_QUANTIZATION", "false").lower() == "true"
 device_map = os.getenv("DEVICE_MAP", "auto")
 max_concurrency = int(os.getenv("MAX_CONCURRENCY", "1"))
-use_flash_attention = os.getenv("USE_FLASH_ATTENTION", "true").lower() == "true"
 use_compile = os.getenv("USE_COMPILE", "true").lower() == "true"
 batch_size = int(os.getenv("BATCH_SIZE", "1"))
 
@@ -102,7 +101,6 @@ logger.info(f"Model name: {model_name}")
 logger.info(f"Use quantization: {use_quantization}")
 logger.info(f"Device map: {device_map}")
 logger.info(f"Max concurrency: {max_concurrency}")
-logger.info(f"Use Flash Attention: {use_flash_attention}")
 logger.info(f"Use torch.compile: {use_compile}")
 logger.info(f"Batch size: {batch_size}")
 logger.info("------- -------------------- -------")
@@ -139,18 +137,6 @@ def load_model():
             "low_cpu_mem_usage": True,
         }
         
-        # Add Flash Attention 2 if available
-        if use_flash_attention and torch.cuda.is_available():
-            try:
-                # First check if flash_attn is actually installed
-                import importlib.util
-                if importlib.util.find_spec("flash_attn") is not None:
-                    model_kwargs["attn_implementation"] = "flash_attention_2"
-                    logger.info("Using Flash Attention 2 for faster inference")
-                else:
-                    logger.warning("Flash Attention 2 requested but flash_attn package not installed, using default attention")
-            except Exception as e:
-                logger.warning(f"Flash Attention 2 not available: {e}")
         
         # Add quantization if requested
         if use_quantization and torch.cuda.is_available():
